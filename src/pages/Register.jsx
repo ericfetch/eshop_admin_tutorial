@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Alert } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils';
+
 export default function Register() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const {
     control,
@@ -12,47 +15,53 @@ export default function Register() {
     formState: { errors },
     watch,
     reset
-  } = useForm({ mode: 'blur' });
-
+  } = useForm({ mode: 'onBlur' });
 
   const password = watch('password');
 
   const onSubmit = async (data) => {
-    console.log(data, errors);
+    setError(null);
+    setSuccess(false);
 
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        // 默认跳过邮箱验证
-        emailOtp: false,
-        data: {
-          username: data.username,
-          registered_at: new Date().toISOString()
+    try {
+      // 注册用户
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name || data.email.split('@')[0],
+            role: 'user'
+          }
         }
-      }
-    });
-    if (error) {
-      // 处理注册错误
-      setError(error.message);
-      return;
-    }
-    // 检查用户状态
-    if (signUpData.user) {
-      // 注册成功
-      setSuccess(true);
-      reset(); // 重置表单
-      console.log('注册成功:', signUpData);
-    } else {
-      // 可能是其他特殊情况
-      setError('注册过程中出现未知错误');
-    }
+      });
 
+      if (signUpError) throw signUpError;
+
+      // 在 user_expansion 表中创建记录
+      const { error: expansionError } = await supabase
+        .from('user_expansion')
+        .insert({
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          access: []
+        });
+
+      if (expansionError) throw expansionError;
+
+      setSuccess(true);
+      reset();
+      // 延迟跳转到登录页
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-
   console.log(errors);
-
 
   return (
     <Container
@@ -83,85 +92,78 @@ export default function Register() {
             className="mb-4"
             onClose={() => setSuccess(false)}
           >
-            注册成功！
+            注册成功！即将跳转到登录页面...
           </Alert>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-
           <Controller
             name="name"
             control={control}
             rules={{
-              required: '请输入用户名',
+              required: '姓名是必填项'
             }}
-            render={({ field }) => <TextField
-              {...field}
-              fullWidth
-              label="用户名"
-              error={!!errors.name}
-              helperText={errors.name?.message}
-              variant="outlined"
-              className="mb-4"
-            />}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="姓名"
+                variant="outlined"
+                error={!!errors.name}
+                helperText={errors.name?.message}
+                className="mb-4"
+              />
+            )}
           />
+
           <Controller
-            rules={{
-              required: '请输入邮箱',
-            }}
             name="email"
             control={control}
-            render={({ field }) => <TextField
-              {...field}
-              fullWidth
-              label="邮箱"
-              error={!!errors.email}
-              helperText={errors.email?.message}
-              variant="outlined"
-              className="mb-4"
-            />}
+            rules={{
+              required: '邮箱是必填项',
+              pattern: {
+                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                message: '请输入有效的邮箱地址'
+              }
+            }}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="邮箱"
+                type="email"
+                variant="outlined"
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                className="mb-4"
+              />
+            )}
           />
-
-
-
+          
           <Controller
             name="password"
             control={control}
             rules={{
-              required: '请输入密码',
+              required: '密码是必填项',
+              minLength: {
+                value: 6,
+                message: '密码至少需要6个字符'
+              }
             }}
-            render={({ field }) => <TextField
-              {...field}
-              fullWidth
-              label="密码"
-              type="password"
-              error={!!errors.password}
-              helperText={errors.password?.message}
-              variant="outlined"
-              className="mb-4"
-            />}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label="密码"
+                type="password"
+                variant="outlined"
+                error={!!errors.password}
+                helperText={errors.password?.message}
+                className="mb-4"
+              />
+            )}
           />
-
-          <Controller
-            name="confirmPassword"
-            control={control}
-            rules={{
-              required: '请确认密码',
-              validate: (value) => value === password || '两次密码输入不一致',
-            }}
-            render={({ field }) => <TextField
-              {...field}
-              fullWidth
-
-              label="确认密码"
-              type="password"
-              error={!!errors.confirmPassword}
-              helperText={errors.confirmPassword?.message}
-              variant="outlined"
-              className="mb-4"
-            />}
-          />
-
+          
           <Button
             type="submit"
             variant="contained"
@@ -171,6 +173,16 @@ export default function Register() {
           >
             注册
           </Button>
+
+          <div className="text-center mt-4">
+            <Button 
+              variant="text" 
+              color="primary"
+              onClick={() => navigate('/login')}
+            >
+              已有账号？立即登录
+            </Button>
+          </div>
         </form>
       </div>
     </Container>

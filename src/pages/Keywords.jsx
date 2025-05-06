@@ -24,6 +24,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { supabase } from '../utils';
+import { set } from 'react-hook-form';
 
 export default function Keywords() {
   const [open, setOpen] = useState(false);
@@ -36,7 +37,6 @@ export default function Keywords() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // 获取关键词列表
   const fetchKeywords = async () => {
     try {
       const response = await supabase.functions.invoke('keywords-crud', {
@@ -60,36 +60,29 @@ export default function Keywords() {
     fetchKeywords();
   }, []);
 
-  // 打开新增/编辑对话框
-  const handleOpenDialog = (keyword = null) => {
+  const hanldeOpenDialog = (keyword) => {
     if (keyword) {
-      // 编辑模式
+      // edit mode
       setCurrentKeyword({
-        id: keyword.id,
-        name: keyword.name
+        ...keyword
       });
       setIsEditing(true);
     } else {
-      // 新增模式
+      // add mode
       setCurrentKeyword({
         id: null,
         name: ''
       });
       setIsEditing(false);
     }
+
     setOpen(true);
-  };
+  }
 
-  // 保存关键词
-  const handleSaveKeyword = async () => {
+  const hanldeSaveKeyword = async () => {
     try {
-      // 验证必填项
-      if (!currentKeyword.name) {
-        setError('关键词名称不能为空');
-        return;
-      }
-
       const actionType = isEditing ? 'update' : 'create';
+      debugger
       const response = await supabase.functions.invoke('keywords-crud', {
         method: 'POST',
         body: JSON.stringify({
@@ -99,16 +92,24 @@ export default function Keywords() {
       });
 
       if (response.data) {
+        // 提示保存成功
         setSuccess(actionType === 'create' ? '关键词创建成功' : '关键词更新成功');
-        fetchKeywords();
+
+        // 关闭弹窗
         setOpen(false);
+        // 刷新 keywords
+        fetchKeywords();
+
       } else {
         setError('保存关键词失败');
       }
-    } catch (err) {
-      setError(err.message);
+
+    } catch (error) {
+      setError(error.message);
     }
-  };
+
+  }
+
 
   // 删除关键词
   const handleDeleteKeyword = async (keywordId) => {
@@ -135,8 +136,8 @@ export default function Keywords() {
   return (
     <div className="p-4">
       {error && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           onClose={() => setError(null)}
           className="mb-4"
         >
@@ -144,8 +145,8 @@ export default function Keywords() {
         </Alert>
       )}
       {success && (
-        <Alert 
-          severity="success" 
+        <Alert
+          severity="success"
           onClose={() => setSuccess(null)}
           className="mb-4"
         >
@@ -159,7 +160,7 @@ export default function Keywords() {
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
+          onClick={() => { hanldeOpenDialog() }}
         >
           新增关键词
         </Button>
@@ -181,15 +182,15 @@ export default function Keywords() {
                 <TableCell>{keyword.name}</TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
-                    <IconButton 
+                    <IconButton
                       color="primary"
-                      onClick={() => handleOpenDialog(keyword)}
+                      onClick={() => { hanldeOpenDialog(keyword) }}
                     >
                       <EditIcon />
                     </IconButton>
-                    <IconButton 
+                    <IconButton
                       color="error"
-                      onClick={() => handleDeleteKeyword(keyword.id)}
+                      onClick={() => { handleDeleteKeyword(keyword.id) }} 
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -230,7 +231,7 @@ export default function Keywords() {
           <Button
             variant="contained"
             color="primary"
-            onClick={handleSaveKeyword}
+            onClick={hanldeSaveKeyword}
           >
             确认
           </Button>

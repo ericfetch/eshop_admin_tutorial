@@ -6,11 +6,13 @@ import AlternateEmailIcon from '@mui/icons-material/AlternateEmail';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useUserAccess } from "../hooks/useUserAccess";
 
+
 const accessMap = new Map()
-accessMap.set('ADMIN', ['/products', '/categories', '/users', '/activities','/keywords'])
-accessMap.set('PRODUCT', ['/products', '/categories'])
-accessMap.set('MARKET', ['/activities','/keywords'])
-accessMap.set('USER', ['/users'])
+accessMap.set('USER-VIEW',"/users")
+accessMap.set('ACTIVITY-VIEW',"/activities")
+accessMap.set('CATEGORY-VIEW',"/categories")
+accessMap.set('KEYWORD-VIEW',"/keywords")
+accessMap.set('PRODUCT-VIEW',"/products")
 
 export default function Dashboard() {
   const [open, setOpen] = useState(true);
@@ -32,7 +34,10 @@ export default function Dashboard() {
 
   let combinedAccessPath = [];
   accessList.forEach(item => {
-    combinedAccessPath = [...new Set([...combinedAccessPath, ...accessMap.get(item)])]
+    if(accessMap.get(item)){
+      combinedAccessPath.push(accessMap.get(item))
+    }
+   
   })
   combinedAccessPath.push('/noAccess')
   console.log('权限页面：',combinedAccessPath)
