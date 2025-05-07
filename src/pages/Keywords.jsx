@@ -24,7 +24,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { supabase } from '../utils';
-import { set } from 'react-hook-form';
+import { useUserAccess } from '../hooks/useUserAccess';
 
 export default function Keywords() {
   const [open, setOpen] = useState(false);
@@ -36,6 +36,7 @@ export default function Keywords() {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [loading,list,check]= useUserAccess();
 
   const fetchKeywords = async () => {
     try {
@@ -160,7 +161,7 @@ export default function Keywords() {
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={() => { hanldeOpenDialog() }}
+          onClick={() => {hanldeOpenDialog()}}
         >
           新增关键词
         </Button>
@@ -190,7 +191,7 @@ export default function Keywords() {
                     </IconButton>
                     <IconButton
                       color="error"
-                      onClick={() => { handleDeleteKeyword(keyword.id) }} 
+                      onClick={() => { check('KEYWORD-EDIT').then(() => {handleDeleteKeyword(keyword.id)}).catch(e=>{console.log(e);})}} 
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -231,7 +232,7 @@ export default function Keywords() {
           <Button
             variant="contained"
             color="primary"
-            onClick={hanldeSaveKeyword}
+            onClick={()=>{check('KEYWORD-EDIT').then(() => {hanldeSaveKeyword()}).catch(() => {setOpen(false)})}}
           >
             确认
           </Button>

@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
-
+import ReactDOM from "react-dom";
+import Snackbar from '@mui/material/Snackbar';
 import { supabase } from "../utils/index";
 
 
@@ -32,8 +33,31 @@ export const useUserAccess = () => {
   }, [userId]);
 
 
+  const check = (key) => {
+    return new Promise((resolve, reject) => {
+      if (list.includes(key)) {
+        resolve()
+      } else {
+        const snackbarContainer = document.createElement('div')
+        ReactDOM.render(<Snackbar
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          open
+          message={`你没有${key}权限`}
+        />,
+          document.body.appendChild(snackbarContainer)
+        )
+        setTimeout(() => {
+          snackbarContainer.remove()
+        }, 3000)
+        reject(`你没有${key}权限`)
+      }
+
+    })
+  }
+
   return [
     loading,
-    list
+    list,
+    check
   ]
 }
